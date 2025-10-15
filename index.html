@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASX Capital Gains Tax Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+   
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                ASX Capital Gains Tax Calculator
+            </h1>
+
+            <div class="form-group">
+                <label for="fileInput">Upload Transaction CSV</label>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+
+            <div class="form-group">
+                <label for="methodSelect">Calculation Method</label>
+                <select id="methodSelect">
+                    <option value="fifo">FIFO (First In, First Out)</option>
+                    <option value="average" disabled>Average Cost (Coming Soon)</option>
+                </select>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="discountCheckbox" checked>
+                <label for="discountCheckbox" class="checkbox-label">
+                    Apply 50% CGT discount for assets held >12 months
+                </label>
+            </div>
+
+            <div id="loadedAlert" class="alert hidden"></div>
+
+            <button id="calculateBtn" class="btn" disabled>
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Calculate CGT
+            </button>
+        </div>
+
+        <div id="resultsSection" class="hidden">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <svg class="stat-icon" fill="none" stroke="#4299e1" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                        <span class="stat-title">Total Capital Gain</span>
+                    </div>
+                    <div class="stat-value" id="totalGain">$0.00</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <svg class="stat-icon" fill="none" stroke="#48bb78" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                        </svg>
+                        <span class="stat-title">Discounted Gain</span>
+                    </div>
+                    <div class="stat-value" id="discountedGain">$0.00</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <svg class="stat-icon" fill="none" stroke="#805ad5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="stat-title">Tax Saving</span>
+                    </div>
+                    <div class="stat-value" id="taxSaving">$0.00</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="results-header">
+                    <h2 style="font-size: 1.5rem; font-weight: 700; color: #1a202c;">Transaction Details</h2>
+                    <button id="exportBtn" class="btn btn-secondary">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Export CSV
+                    </button>
+                </div>
+
+                <div id="transactionsList"></div>
+
+                <div class="note">
+                    <p class="note-text">
+                        <strong>Note:</strong> This calculator provides estimates based on the FIFO method. 
+                        Please consult with a tax professional or accountant for your official tax return. 
+                        The 50% CGT discount applies to Australian residents for assets held more than 12 months.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let transactions = [];
+        let cgtResults = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const loadedAlert = document.getElementById('loadedAlert');
+        const resultsSection = document.getElementById('resultsSection');
+        const discountCheckbox = document.getElementById('discountCheckbox');
+        const exportBtn = document.getElementById('exportBtn');
+
+        fileInput.addEventListener('change', handleFileUpload);
+        calculateBtn.addEventListener('click', calculateCGT);
+        exportBtn.addEventListener('click', exportResults);
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+                complete: (results) => {
+                    transactions = results.data.map(row => ({
+                        securityId: row['Security identifier'],
+                        securityName: row['Security name'],
+                        financialYear: row['Financial year'],
+                        investorCount: row['Investor count'],
+                        accountId: row['Account ID'],
+                        hinSrn: row['HIN/SRN'],
+                        transactionDate: row['Transaction date'],
+                        quantityChange: row['Quantity change'],
+                        transactionType: row['Transaction type'],
+                        transactionDesc: row['Transaction description'],
+                        quantity: row['Quantity'],
+                        unitAmount: row['Unit amount'],
+                        value: row['Value']
+                    }));
+
+                    loadedAlert.textContent = `✓ ${transactions.length} transactions loaded`;
+                    loadedAlert.classList.remove('hidden');
+                    calculateBtn.disabled = false;
+                }
+            });
+        }
+
+        function calculateCGT() {
+            if (transactions.length === 0) return;
+
+            const securities = {};
+            
+            transactions.forEach(t => {
+                if (!securities[t.securityId]) {
+                    securities[t.securityId] = {
+                        name: t.securityName,
+                        purchases: [],
+                        sales: []
+                    };
+                }
+
+                const date = new Date(t.transactionDate.split('/').reverse().join('-'));
+                
+                if (t.transactionType === 'Acquisition' || t.transactionDesc === 'Purchase') {
+                    securities[t.securityId].purchases.push({
+                        date,
+                        quantity: Math.abs(t.quantityChange),
+                        unitPrice: t.unitAmount,
+                        totalCost: Math.abs(t.value)
+                    });
+                } else if (t.transactionType === 'Disposal' || t.transactionDesc === 'Sale') {
+                    securities[t.securityId].sales.push({
+                        date,
+                        quantity: Math.abs(t.quantityChange),
+                        unitPrice: t.unitAmount,
+                        totalProceeds: Math.abs(t.value)
+                    });
+                }
+            });
+
+            Object.keys(securities).forEach(key => {
+                securities[key].purchases.sort((a, b) => a.date - b.date);
+                securities[key].sales.sort((a, b) => a.date - b.date);
+            });
+
+            const results = [];
+            let totalCapitalGain = 0;
+            let totalDiscountedGain = 0;
+            const discountEligible = discountCheckbox.checked;
+
+            Object.entries(securities).forEach(([secId, sec]) => {
+                sec.sales.forEach(sale => {
+                    let remainingToSell = sale.quantity;
+                    let totalCostBase = 0;
+                    const purchaseMatches = [];
+                    const availablePurchases = JSON.parse(JSON.stringify(sec.purchases));
+
+                    while (remainingToSell > 0 && availablePurchases.length > 0) {
+                        const purchase = availablePurchases[0];
+                        const qtyToUse = Math.min(remainingToSell, purchase.quantity);
+                        
+                        const costForThisQty = (purchase.totalCost / purchase.quantity) * qtyToUse;
+                        totalCostBase += costForThisQty;
+                        
+                        const daysBetween = Math.floor((sale.date - new Date(purchase.date)) / (1000 * 60 * 60 * 24));
+                        const isLongTerm = daysBetween >= 365;
+                        
+                        purchaseMatches.push({
+                            date: new Date(purchase.date),
+                            quantity: qtyToUse,
+                            costBase: costForThisQty,
+                            isLongTerm
+                        });
+                        
+                        purchase.quantity -= qtyToUse;
+                        remainingToSell -= qtyToUse;
+                        
+                        if (purchase.quantity <= 0) {
+                            availablePurchases.shift();
+                        }
+                    }
+
+                    const capitalGain = sale.totalProceeds - totalCostBase;
+                    const hasLongTerm = purchaseMatches.some(p => p.isLongTerm);
+                    const discountedGain = (hasLongTerm && discountEligible) ? capitalGain * 0.5 : capitalGain;
+
+                    results.push({
+                        security: sec.name,
+                        securityId: secId,
+                        saleDate: sale.date.toLocaleDateString('en-AU'),
+                        quantity: sale.quantity,
+                        proceeds: sale.totalProceeds,
+                        costBase: totalCostBase,
+                        capitalGain,
+                        isLongTerm: hasLongTerm,
+                        discountedGain,
+                        purchaseMatches
+                    });
+
+                    totalCapitalGain += capitalGain;
+                    totalDiscountedGain += discountedGain;
+                });
+            });
+
+            cgtResults = {
+                details: results,
+                totalCapitalGain,
+                totalDiscountedGain,
+                taxSaving: totalCapitalGain - totalDiscountedGain
+            };
+
+            displayResults();
+        }
+
+        function displayResults() {
+            if (!cgtResults) return;
+
+            document.getElementById('totalGain').textContent = `$${cgtResults.totalCapitalGain.toFixed(2)}`;
+            document.getElementById('discountedGain').textContent = `$${cgtResults.totalDiscountedGain.toFixed(2)}`;
+            document.getElementById('taxSaving').textContent = `$${cgtResults.taxSaving.toFixed(2)}`;
+
+            const transactionsList = document.getElementById('transactionsList');
+            transactionsList.innerHTML = '';
+
+            cgtResults.details.forEach(result => {
+                const item = document.createElement('div');
+                item.className = 'transaction-item';
+                item.innerHTML = `
+                    <div class="transaction-header">
+                        <div>
+                            <div class="transaction-title">${result.security}</div>
+                            <div class="transaction-subtitle">${result.securityId} • Sold: ${result.saleDate}</div>
+                        </div>
+                        <div class="badge ${result.isLongTerm ? 'badge-green' : 'badge-orange'}">
+                            ${result.isLongTerm ? '50% Discount' : 'No Discount'}
+                        </div>
+                    </div>
+
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <span class="detail-label">Quantity Sold</span>
+                            <span class="detail-value">${result.quantity}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Sale Proceeds</span>
+                            <span class="detail-value value-green">$${result.proceeds.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Cost Base</span>
+                            <span class="detail-value value-blue">$${result.costBase.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-section">
+                        <div class="detail-item">
+                            <span class="detail-label">Capital Gain</span>
+                            <span class="detail-value ${result.capitalGain >= 0 ? 'value-green' : 'value-red'}">
+                                $${result.capitalGain.toFixed(2)}
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Discounted Gain (Taxable)</span>
+                            <span class="detail-value ${result.discountedGain >= 0 ? 'value-purple' : 'value-red'}">
+                                $${result.discountedGain.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                transactionsList.appendChild(item);
+            });
+
+            resultsSection.classList.remove('hidden');
+        }
+
+        function exportResults() {
+            if (!cgtResults) return;
+
+            const csvData = cgtResults.details.map(r => ({
+                'Security': r.security,
+                'Security ID': r.securityId,
+                'Sale Date': r.saleDate,
+                'Quantity': r.quantity,
+                'Proceeds': r.proceeds.toFixed(2),
+                'Cost Base': r.costBase.toFixed(2),
+                'Capital Gain': r.capitalGain.toFixed(2),
+                'Long-term (>12mo)': r.isLongTerm ? 'Yes' : 'No',
+                'Discounted Gain': r.discountedGain.toFixed(2)
+            }));
+
+            const csv = Papa.unparse(csvData);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cgt-report.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
