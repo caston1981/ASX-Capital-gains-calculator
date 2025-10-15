@@ -137,7 +137,7 @@
                         investorCount: row['Investor count'],
                         accountId: row['Account ID'],
                         hinSrn: row['HIN/SRN'],
-                        transactionDate: row['Transaction date'],
+                        transactionDate: row['Transaction date '],
                         quantityChange: row['Quantity change'],
                         transactionType: row['Transaction type'],
                         transactionDesc: row['Transaction description'],
@@ -174,16 +174,16 @@
                 if (t.transactionType === 'Acquisition' || t.transactionDesc === 'Purchase') {
                     securities[t.securityId].purchases.push({
                         date,
-                        quantity: Math.abs(t.quantityChange),
+                        quantity: t.quantity,
                         unitPrice: t.unitAmount,
-                        totalCost: Math.abs(t.value)
+                        totalCost: t.value
                     });
                 } else if (t.transactionType === 'Disposal' || t.transactionDesc === 'Sale') {
                     securities[t.securityId].sales.push({
                         date,
-                        quantity: Math.abs(t.quantityChange),
+                        quantity: t.quantity,
                         unitPrice: t.unitAmount,
-                        totalProceeds: Math.abs(t.value)
+                        totalProceeds: t.value
                     });
                 }
             });
