@@ -130,21 +130,28 @@
                 skipEmptyLines: true,
                 dynamicTyping: true,
                 complete: (results) => {
-                    transactions = results.data.map(row => ({
-                        securityId: row['Security identifier'],
-                        securityName: row['Security name'],
-                        financialYear: row['Financial year'],
-                        investorCount: row['Investor count'],
-                        accountId: row['Account ID'],
-                        hinSrn: row['HIN/SRN'],
-                        transactionDate: row['Transaction date '],
-                        quantityChange: row['Quantity change'],
-                        transactionType: row['Transaction type'],
-                        transactionDesc: row['Transaction description'],
-                        quantity: row['Quantity'],
-                        unitAmount: row['Unit amount'],
-                        value: row['Value']
-                    }));
+                    // Filter out rows that don't have the required fields (skip header/metadata rows)
+                    const validRows = results.data.filter(row => row['Security identifier'] && row['Transaction date ']);
+                    
+                    transactions = validRows.map(row => {
+                        const mapped = {
+                            securityId: row['Security identifier'],
+                            securityName: row['Security name'],
+                            financialYear: row['Financial year'],
+                            investorCount: row['Investor count'],
+                            accountId: row['Account ID'],
+                            hinSrn: row['HIN/SRN'],
+                            transactionDate: row['Transaction date '],
+                            quantityChange: row['Quantity change'],
+                            transactionType: row['Transaction type'],
+                            transactionDesc: row['Transaction description'],
+                            quantity: row['Quantity'],
+                            unitAmount: row['Unit amount'],
+                            value: row['Value']
+                        };
+                        console.log('Mapped transaction:', mapped);
+                        return mapped;
+                    });
 
                     loadedAlert.textContent = `✓ ${transactions.length} transactions loaded`;
                     loadedAlert.classList.remove('hidden');
@@ -161,7 +168,11 @@
             const securities = {};
             
             transactions.forEach(t => {
-                if (!t.transactionDate) return;
+                console.log('Processing transaction:', t);
+                if (!t.transactionDate) {
+                    console.log('Skipping transaction with no date');
+                    return;
+                }
 
                 if (!securities[t.securityId]) {
                     securities[t.securityId] = {
