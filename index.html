@@ -130,8 +130,12 @@
                 skipEmptyLines: true,
                 dynamicTyping: true,
                 complete: (results) => {
+                    console.log('Raw parsed data:', results.data);
+                    console.log('First few rows:', results.data.slice(0, 5));
+                    
                     // Filter out rows that don't have the required fields (skip header/metadata rows)
                     const validRows = results.data.filter(row => row['Security identifier'] && row['Transaction date ']);
+                    console.log('Valid rows after filter:', validRows.length);
                     
                     transactions = validRows.map(row => {
                         const mapped = {
