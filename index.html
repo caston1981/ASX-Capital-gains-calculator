@@ -157,6 +157,8 @@
             const securities = {};
             
             transactions.forEach(t => {
+                if (!t.transactionDate) return;
+
                 if (!securities[t.securityId]) {
                     securities[t.securityId] = {
                         name: t.securityName,
