@@ -125,43 +125,57 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                dynamicTyping: true,
-                complete: (results) => {
-                    console.log('Raw parsed data:', results.data);
-                    console.log('First few rows:', results.data.slice(0, 5));
-                    
-                    // Filter out rows that don't have the required fields (skip header/metadata rows)
-                    const validRows = results.data.filter(row => row['Security identifier'] && row['Transaction date ']);
-                    console.log('Valid rows after filter:', validRows.length);
-                    
-                    transactions = validRows.map(row => {
-                        const mapped = {
-                            securityId: row['Security identifier'],
-                            securityName: row['Security name'],
-                            financialYear: row['Financial year'],
-                            investorCount: row['Investor count'],
-                            accountId: row['Account ID'],
-                            hinSrn: row['HIN/SRN'],
-                            transactionDate: row['Transaction date '],
-                            quantityChange: row['Quantity change'],
-                            transactionType: row['Transaction type'],
-                            transactionDesc: row['Transaction description'],
-                            quantity: row['Quantity'],
-                            unitAmount: row['Unit amount'],
-                            value: row['Value']
-                        };
-                        console.log('Mapped transaction:', mapped);
-                        return mapped;
-                    });
-
-                    loadedAlert.textContent = `✓ ${transactions.length} transactions loaded`;
-                    loadedAlert.classList.remove('hidden');
-                    calculateBtn.disabled = false;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const csvContent = e.target.result;
+                const lines = csvContent.split('\n');
+                
+                // Find the header row
+                const headerIndex = lines.findIndex(line => line.includes('Security identifier'));
+                if (headerIndex === -1) {
+                    alert('Could not find the header row in the CSV');
+                    return;
                 }
-            });
+                
+                // Take lines from header onwards
+                const dataLines = lines.slice(headerIndex);
+                const cleanCsv = dataLines.join('\n');
+                
+                Papa.parse(cleanCsv, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: true,
+                    complete: (results) => {
+                        console.log('Raw parsed data:', results.data);
+                        console.log('First few rows:', results.data.slice(0, 5));
+                        
+                        transactions = results.data.map(row => {
+                            const mapped = {
+                                securityId: row['Security identifier'],
+                                securityName: row['Security name'],
+                                financialYear: row['Financial year'],
+                                investorCount: row['Investor count'],
+                                accountId: row['Account ID'],
+                                hinSrn: row['HIN/SRN'],
+                                transactionDate: row['Transaction date '],
+                                quantityChange: row['Quantity change'],
+                                transactionType: row['Transaction type'],
+                                transactionDesc: row['Transaction description'],
+                                quantity: row['Quantity'],
+                                unitAmount: row['Unit amount'],
+                                value: row['Value']
+                            };
+                            console.log('Mapped transaction:', mapped);
+                            return mapped;
+                        });
+
+                        loadedAlert.textContent = `✓ ${transactions.length} transactions loaded`;
+                        loadedAlert.classList.remove('hidden');
+                        calculateBtn.disabled = false;
+                    }
+                });
+            };
+            reader.readAsText(file);
         }
 
         function calculateCGT() {
