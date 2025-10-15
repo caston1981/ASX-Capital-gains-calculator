@@ -156,6 +156,8 @@
         function calculateCGT() {
             if (transactions.length === 0) return;
 
+            console.log('Starting CGT calculation with', transactions.length, 'transactions');
+
             const securities = {};
             
             transactions.forEach(t => {
@@ -169,7 +171,8 @@
                     };
                 }
 
-                const date = new Date(t.transactionDate.split('/').reverse().join('-'));
+                const [day, month, year] = t.transactionDate.split('/');
+                const date = new Date(year, month - 1, day);
                 
                 if (t.transactionType === 'Acquisition' || t.transactionDesc === 'Purchase') {
                     securities[t.securityId].purchases.push({
@@ -188,6 +191,8 @@
                 }
             });
 
+            console.log('Securities processed:', Object.keys(securities));
+
             Object.keys(securities).forEach(key => {
                 securities[key].purchases.sort((a, b) => a.date - b.date);
                 securities[key].sales.sort((a, b) => a.date - b.date);
@@ -199,6 +204,7 @@
             const discountEligible = discountCheckbox.checked;
 
             Object.entries(securities).forEach(([secId, sec]) => {
+                console.log(`Processing ${secId}: ${sec.purchases.length} purchases, ${sec.sales.length} sales`);
                 sec.sales.forEach(sale => {
                     let remainingToSell = sale.quantity;
                     let totalCostBase = 0;
@@ -234,6 +240,8 @@
                     const hasLongTerm = purchaseMatches.some(p => p.isLongTerm);
                     const discountedGain = (hasLongTerm && discountEligible) ? capitalGain * 0.5 : capitalGain;
 
+                    console.log(`Sale: ${sale.quantity} @ ${sale.totalProceeds}, cost base: ${totalCostBase}, gain: ${capitalGain}, discounted: ${discountedGain}`);
+
                     results.push({
                         security: sec.name,
                         securityId: secId,
@@ -251,6 +259,8 @@
                     totalDiscountedGain += discountedGain;
                 });
             });
+
+            console.log('Total capital gain:', totalCapitalGain, 'Total discounted gain:', totalDiscountedGain);
 
             cgtResults = {
                 details: results,
